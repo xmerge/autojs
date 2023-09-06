@@ -100,28 +100,38 @@ function uiObjParentTraverse(uiObj) {
     }
 }
 /**
- * 
- * @param {*} text 校验是否处于演唱会详情界面
+ * 校验是否处于演唱会详情界面
+ * @param {*} text 
  * @returns 找到的控件 uiObj
  */
 function checker_Begin() {
+    var counter = 1;
     var text = "已预约";
     let uiButton = textContains(text).findOnce();
     if (uiButton) {
-        return uiButton;
+        // return uiButton;
     }
+    toastLog('请进入演唱会详情界面...');
     while (!uiButton) {
-        toastLog('请进入演唱会详情界面...');
-        uiButton = textContains(text).findOne(10000);
+        uiButton = textContains(text).findOnce();
+        if (uiButton) break
+        uiButton = textContains("立即预订").findOnce();
+        if (uiButton) break
+        uiButton = textContains(text).findOnce();
+        
     }
-    toastLog('已进入演唱会详情界面，等待开始');
-    var purchaseButton = null
-    while(!purchaseButton) {
-        purchaseButton = textContains("立即").findOne(3000);
-        console.log("等待开始...")
+    toastLog('已进入演唱会详情界面，等待开始...');
+    var purchaseButton = textContains("立即预订").findOnce();
+    while (!purchaseButton) {
+        purchaseButton = textContains("立即预订").findOnce();
+        if (purchaseButton) break
+        purchaseButton = textContains("立即购买").findOnce();
+        if (purchaseButton) break
+        // console.log("脚本运行中，等待开始...", counter++)
     }
     return purchaseButton
 }
+
 function checker_Clickable(uiObj) {
     if (uiObj.clickable()) {
         uiObj.click()
@@ -173,9 +183,10 @@ function validator_busyPage() {
  */
 function selector_Ground() {
     var butnArray = textContains("内场").untilFind();
+    // var butnArray = textContains("內场").untilFind();
     var len = butnArray.length
     for (let i = 0; i < len; i++) {
-        let element = butnArray[len - i -1]
+        let element = butnArray[len - i - 1]
         // console.log(element.text())
         uiObjParentTraverse(element);
         if (textContains("提交缺货登记").findOnce()) {
@@ -247,7 +258,8 @@ function config_submitButtonPos() {
  */
 function config_audience() {
     audienceCount = dialogs.input("请输入观演人数", "1")
-    console.log("观影人数: ", audienceCount)
+    console.log("已设置观影人数: ", audienceCount)
+    console.log("当前为快速模式，将默认选择前" + audienceCount + "位观演人")
     // for (let i = 0; i < audienceCount; i++) {
     //     let title = "请输入观演人" + (i + 1) + "姓名"
     //     let audienceName = dialogs.prompt(title)
