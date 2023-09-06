@@ -34,6 +34,7 @@ function addNote() {
     // Show the add note UI
     var addNoteUI = new UI.Prompt({
         title: 'Add Note',
+        
         message: 'Enter the note:',
         defaultValue: '',
         onSubmit: function(text) {

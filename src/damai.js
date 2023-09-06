@@ -9,6 +9,8 @@ var widthRatio = deviceWidth / 1440
 var heightRatio = deviceHeight / 3040
 // 观演人数
 var audienceCount
+// 场次购买顺序
+var groundRank = []
 // 观演人列表，因性能因素，暂时弃用
 var audienceAray = []
 
@@ -28,6 +30,7 @@ function init() {
     console.setSize(deviceWidth / 1.2, deviceHeight / 4);
     console.log("初始化完成，设备宽" + deviceWidth + "px, 高" + deviceHeight + "px")
     config_audience()
+    config_ground()
 }
 
 /**
@@ -55,9 +58,12 @@ function checker_Permission() {
 function handlePurchase() {
     var purchaseButton = checker_Begin()
     uiObjParentTraverse(purchaseButton)
-    // 选择场次，默认从内场到看台
-    selector_Ground()
-    var confirmButton = id("btn_buy").findOne();
+    var confirmButton = id("btn_buy").findOnce();
+    if (!confirmButton) {
+        // 选择场次，默认从内场到看台
+        selector_Ground()
+        var confirmButton = id("btn_buy").findOne();
+    }
     if (confirmButton) {
         checker_audienceNum() // 选择观演人数
         uiObjParentTraverse(confirmButton) // 点击提交按钮
@@ -67,7 +73,7 @@ function handlePurchase() {
     if (textStartsWith("实名观演人").untilFind()) {
         console.log("已进入提交订单页面")
         selector_CheckBox() // 选择观演人
-        submitOrder() // 提交订单
+        // submitOrder() // 提交订单
         var bounds_wrapper = validator_busyPage() // 验证是否操作频繁
         if (bounds_wrapper) {
             setScreenMetrics(deviceWidth, deviceHeight);
@@ -108,17 +114,17 @@ function checker_Begin() {
     var counter = 1;
     var text = "已预约";
     let uiButton = textContains(text).findOnce();
-    if (uiButton) {
-        // return uiButton;
-    }
+    let likeText = textContains("帮助").findOnce();
     toastLog('请进入演唱会详情界面...');
-    while (!uiButton) {
+    while (!(uiButton && likeText)) {
+        likeText = textContains("帮助").findOnce();
         uiButton = textContains(text).findOnce();
-        if (uiButton) break
+        if (uiButton && likeText) break
         uiButton = textContains("立即预订").findOnce();
-        if (uiButton) break
+        if (uiButton && likeText) break
+        uiButton = textContains("立即购买").findOnce();
+        if (uiButton && likeText) break
         uiButton = textContains(text).findOnce();
-        
     }
     toastLog('已进入演唱会详情界面，等待开始...');
     var purchaseButton = textContains("立即预订").findOnce();
@@ -127,6 +133,9 @@ function checker_Begin() {
         if (purchaseButton) break
         purchaseButton = textContains("立即购买").findOnce();
         if (purchaseButton) break
+        // 测试
+        // purchaseButton = textContains("已预约").findOnce();
+        // if (purchaseButton) break
         // console.log("脚本运行中，等待开始...", counter++)
     }
     return purchaseButton
@@ -182,12 +191,34 @@ function validator_busyPage() {
  * 选择场次，依次递减
  */
 function selector_Ground() {
-    var butnArray = textContains("内场").untilFind();
-    // var butnArray = textContains("內场").untilFind();
-    var len = butnArray.length
+    // var butnArray = textContains("内场").untilFind();
+    // // var butnArray = textContains("內场").untilFind();
+    // var len = butnArray.length
+    // for (let i = 0; i < len; i++) {
+    //     let element = butnArray[len - i - 1]
+    //     console.log(element.text())
+    //     uiObjParentTraverse(element);
+    //     if (textContains("提交缺货登记").findOnce()) {
+    //         continue
+    //     } else {
+    //         return
+    //     }
+    // }
+    // var butnArray = textContains("看台").untilFind();
+    // var len = butnArray.length
+    // for (let i = 0; i < len; i++) {
+    //     let element = butnArray[len - i - 1]
+    //     console.log(element.id())
+    //     uiObjParentTraverse(element);
+    //     if (textContains("提交缺货登记").findOnce()) {
+    //         continue
+    //     } else {
+    //         continue
+    //     }
+    // }
+    var len = groundRank.length
     for (let i = 0; i < len; i++) {
-        let element = butnArray[len - i - 1]
-        // console.log(element.text())
+        let element = textContains(groundRank[i]).findOne(1000)
         uiObjParentTraverse(element);
         if (textContains("提交缺货登记").findOnce()) {
             continue
@@ -195,19 +226,6 @@ function selector_Ground() {
             return
         }
     }
-    var butnArray = textContains("看台").untilFind();
-    var len = butnArray.length
-    for (let i = 0; i < len; i++) {
-        let element = butnArray[len - i - 1]
-        // console.log(element.text())
-        uiObjParentTraverse(element);
-        if (textContains("提交缺货登记").findOnce()) {
-            continue
-        } else {
-            return
-        }
-    }
-
 }
 /**
  * 选择观影人
@@ -268,6 +286,26 @@ function config_audience() {
     //         audienceName
     //     )
     // }
+}
+/**
+ * 设置抢票优先票档
+ */
+function config_ground() {
+    console.log("请进入场次票档界面...")
+    var txtArray = idContains("item_text").untilFind();
+    groundArray = txtArray.filter(item => item.text().includes('元'))
+    var len = groundArray.length
+    for (let i = 0; i < len; i++) {
+        // let options = groundArray.map(item => item.text());
+        let options = groundArray
+            .filter(item => !groundRank.includes(item.text()))
+            .map(item => item.text());
+        let selectedGround = options[dialogs.singleChoice("请选择优先级为" + (i + 1) + "的票档", options)];
+        groundRank.push(selectedGround)
+    }
+    console.log("票档优先级设置完成")
+    console.log("优先购买票档为：", groundRank[0])
+    console.log("请选择优先票档后在下方点击预约")
 }
 
 
